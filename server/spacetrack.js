@@ -68,10 +68,10 @@ async function fetchDecay() {
   await login(client);
 
   const now = new Date();
-  const minus1d = new Date(now.getTime() - 24 * 3600 * 1000).toISOString().slice(0, 10);
+  const today = now.toISOString().slice(0, 10);
   const plus30d = new Date(now.getTime() + 30 * 24 * 3600 * 1000).toISOString().slice(0, 10);
 
-  const url = `${BASE}/basicspacedata/query/class/decay/DECAY_EPOCH/${minus1d}--${plus30d}/orderby/DECAY_EPOCH asc/format/json`;
+  const url = `${BASE}/basicspacedata/query/class/decay/DECAY_EPOCH/${today}--${plus30d}/orderby/DECAY_EPOCH asc/format/json`;
   const res = await client.get(url);
   const raw = res.data || [];
 
@@ -116,10 +116,10 @@ async function fetchTip() {
   await login(client);
 
   const now = new Date();
-  const minus1d = new Date(now.getTime() - 24 * 3600 * 1000).toISOString().slice(0, 10);
+  const today = now.toISOString().slice(0, 10);
   const plus30d = new Date(now.getTime() + 30 * 24 * 3600 * 1000).toISOString().slice(0, 10);
 
-  const url = `${BASE}/basicspacedata/query/class/tip/DECAY_EPOCH/${minus1d}--${plus30d}/orderby/DECAY_EPOCH asc/format/json`;
+  const url = `${BASE}/basicspacedata/query/class/tip/DECAY_EPOCH/${today}--${plus30d}/orderby/DECAY_EPOCH asc/format/json`;
   const res = await client.get(url);
   const raw = res.data || [];
 
