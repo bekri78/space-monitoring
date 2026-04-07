@@ -148,11 +148,22 @@ async function fetchGdeltEvents(cacheDir, forceRefresh = false) {
 
   console.log('[gdelt] Starting BigQuery fetch pipeline...');
   let rawEvents;
-  try {
-    rawEvents = await runBigQuery();
-  } catch (err) {
-    console.error('[gdelt] BigQuery FAILED:', err.message);
-    return [];
+  // Retry up to 3 times with exponential backoff (BigQuery jobs can fail transiently)
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      rawEvents = await runBigQuery();
+      break; // success
+    } catch (err) {
+      console.error(`[gdelt] BigQuery attempt ${attempt}/3 FAILED: ${err.message}`);
+      if (attempt < 3) {
+        const delay = attempt * 15000; // 15s, 30s
+        console.log(`[gdelt] Retrying in ${delay / 1000}s...`);
+        await new Promise((r) => setTimeout(r, delay));
+      } else {
+        console.error('[gdelt] All BigQuery attempts failed — no events this cycle');
+        return [];
+      }
+    }
   }
 
   if (!rawEvents || rawEvents.length === 0) {
