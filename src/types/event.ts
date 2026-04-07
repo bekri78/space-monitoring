@@ -23,6 +23,9 @@ export interface SpaceEvent {
   relevance: number;
   inferred_location: string;
   location_display?: string;
+  space_category?: string;
+  display_mode?: string;
+  short_reason?: string;
 }
 
 export type EventsResponse = SpaceEvent[];

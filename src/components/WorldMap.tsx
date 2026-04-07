@@ -208,39 +208,51 @@ function decayPopup(obj: DecayObject): string {
   </div>`;
 }
 
+function categoryBadgeColor(cat?: string): string {
+  switch (cat) {
+    case 'launch':            return '#00d4ff';
+    case 'satellite':         return '#0088ff';
+    case 'reentry':
+    case 'debris':            return '#ff8800';
+    case 'space_weather':     return '#aa44ff';
+    case 'asat':
+    case 'military_space':    return '#ff2244';
+    case 'gnss_interference': return '#ff6600';
+    default:                  return '#44aa88';
+  }
+}
+
+function sourceDomain(url: string): string {
+  try { return new URL(url).hostname.replace(/^www\./, ''); }
+  catch { return 'source'; }
+}
+
+function formatDate(dateStr: string): string {
+  if (!dateStr || dateStr.length < 8) return dateStr;
+  return `${dateStr.slice(0, 4)}-${dateStr.slice(4, 6)}-${dateStr.slice(6, 8)}`;
+}
+
 function eventPopup(ev: SpaceEvent): string {
-  const severity = eventSeverity(ev);
-  const color = severityColor(severity);
-  return `<div style="${popupStyle}">
-    <div style="color:${color};font-weight:bold;margin-bottom:6px;font-size:13px">
-      ${ev.title_en || ev.location}
+  const cat = (ev.space_category || 'context').toUpperCase().replace('_', ' ');
+  const catColor = categoryBadgeColor(ev.space_category);
+  const domain = sourceDomain(ev.source_url);
+  const date = formatDate(ev.date);
+  const title = ev.title_en || ev.title_fr || ev.location || 'Space event';
+
+  const badge = (text: string, color: string) =>
+    `<span style="background:${color}22;border:1px solid ${color}66;color:${color};border-radius:3px;padding:1px 6px;font-size:10px;white-space:nowrap">${text}</span>`;
+
+  return `<div style="${popupStyle}padding:10px;min-width:220px;max-width:300px;">
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;align-items:center">
+      ${badge(cat, catColor)}
+      ${badge(domain, '#6a8a9a')}
+      ${badge(date, '#445566')}
     </div>
-    <div style="color:#8ab;margin-bottom:6px;font-size:11px">${ev.title_fr}</div>
-    <div style="margin-bottom:4px">
-      <span style="color:#888">LOCATION: </span>${ev.location_display || ev.inferred_location || ev.location}
-    </div>
-    <div style="margin-bottom:4px">
-      <span style="color:#888">DATE: </span>${ev.date}
-    </div>
-    <div style="margin-bottom:4px">
-      <span style="color:#888">ACTORS: </span>${[ev.actor1, ev.actor2].filter(Boolean).join(' / ') || 'N/A'}
-    </div>
-    <div style="margin-bottom:4px">
-      <span style="color:#888">GOLDSTEIN: </span>
-      <span style="color:${color}">${ev.goldstein ?? 'N/A'}</span>
-    </div>
-    <div style="margin-bottom:4px">
-      <span style="color:#888">MENTIONS: </span>${ev.num_mentions}
-    </div>
-    <div style="margin-bottom:4px">
-      <span style="color:#888">RELEVANCE: </span>${ev.relevance}/100
-    </div>
-    <div style="margin-top:8px">
-      <a href="${ev.source_url}" target="_blank" rel="noopener"
-        style="color:#00d4ff;text-decoration:none;font-size:11px">
-        [SOURCE LINK]
-      </a>
-    </div>
+    <a href="${ev.source_url}" target="_blank" rel="noopener"
+      style="color:#e8f4ff;font-size:13px;line-height:1.4;text-decoration:none;display:block;cursor:pointer"
+      onmouseover="this.style.color='#00d4ff'" onmouseout="this.style.color='#e8f4ff'">
+      ${title}
+    </a>
   </div>`;
 }
 
