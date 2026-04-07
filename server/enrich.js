@@ -3,7 +3,7 @@
 const OpenAI = require('openai');
 const axios = require('axios');
 
-const OPENAI_KEY = process.env.OPENAI_API_KEY || '';
+const OPENAI_KEY = process.env.OPENAI_API_KEY || process.env.chatgpt || '';
 const BATCH_SIZE = 10;          // smaller batches = faster + less timeout risk
 const BATCH_TIMEOUT_MS = 25000; // 25s max per batch
 const GEOCODE_TIMEOUT_MS = 6000;
