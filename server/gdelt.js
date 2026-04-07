@@ -34,10 +34,18 @@ WHERE
   AND ActionGeo_Lat != 0
   AND ActionGeo_Long != 0
   AND SOURCEURL IS NOT NULL
-  AND LOWER(SOURCEURL) LIKE ANY (
-    '%space%', '%satellite%', '%rocket%', '%launch%', '%missile%',
-    '%nasa%', '%esa%', '%roscosmos%', '%spacex%', '%orbit%',
-    '%ballistic%', '%icbm%', '%hypersonic%', '%reentry%'
+  AND (
+    LOWER(SOURCEURL) LIKE ANY (
+      '%satellite%', '%rocket%', '%nasa%', '%roscosmos%', '%spacex%',
+      '%orbit%', '%ballistic%', '%icbm%', '%hypersonic%', '%reentry%',
+      '%spaceweather%', '%spaceflightnow%', '%nasaspaceflight%',
+      '%spacenews%', '%space-track%', '%arianespace%', '%blueorigin%'
+    )
+    OR REGEXP_CONTAINS(LOWER(SOURCEURL), r'space[- ]?(launch|station|agency|force|command|debris|weather|flight|craft|port)')
+    OR REGEXP_CONTAINS(LOWER(SOURCEURL), r'(launch|liftoff|reentry|reusable)[- ]?(rocket|vehicle|spacecraft|booster)')
+    OR LOWER(SOURCEURL) LIKE '%missile%defense%'
+    OR LOWER(SOURCEURL) LIKE '%anti-satellite%'
+    OR LOWER(SOURCEURL) LIKE '%asat%'
   )
 ORDER BY NumMentions DESC
 LIMIT 2000
@@ -185,13 +193,8 @@ async function fetchGdeltEvents(cacheDir, forceRefresh = false) {
   } catch (err) {
     console.error('[gdelt] Enrichment FAILED:', err.message);
     // Return raw events without enrichment rather than nothing
-    enriched = toEnrich.map((e) => ({
-      ...e,
-      title_fr: e.location || 'Événement spatial',
-      title_en: e.location || 'Space event',
-      relevance: 65,
-      inferred_location: e.location || '',
-    }));
+    console.error('[gdelt] Enrichment failed — no events cached this cycle');
+    enriched = [];
   }
 
   console.log(`[gdelt] Final: ${enriched.length} events ready`);

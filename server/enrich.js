@@ -76,14 +76,8 @@ ${JSON.stringify(events.map((e) => ({
 // ── Main enrichment pipeline ──────────────────────────────────────────────────
 async function enrichBatch(events) {
   if (!OPENAI_KEY) {
-    console.warn('[enrich] No OPENAI_API_KEY — returning events as-is');
-    return events.map((e) => ({
-      ...e,
-      title_fr: e.location || 'Événement spatial',
-      title_en: e.location || 'Space event',
-      relevance: 70,
-      inferred_location: e.location || '',
-    }));
+    console.warn('[enrich] No OPENAI_API_KEY — returning empty (cannot score relevance without OpenAI)');
+    return [];
   }
 
   const client = new OpenAI({ apiKey: OPENAI_KEY });
