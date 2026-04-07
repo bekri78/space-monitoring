@@ -16,22 +16,48 @@ L.Icon.Default.mergeOptions({
 });
 
 // ── SVG rocket icon ────────────────────────────────────────────────────────────
-function rocketSvg(color: string) {
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="28" height="28">
-    <path fill="${color}" stroke="#000" stroke-width="0.5"
-      d="M12 2C8 2 5 6 5 10c0 3 1.5 5.5 3 7l-1 4h10l-1-4c1.5-1.5 3-4 3-7 0-4-3-8-7-8z"/>
-    <ellipse fill="${color}" stroke="#000" stroke-width="0.5" cx="12" cy="10" rx="2" ry="3"/>
-    <path fill="${color}" stroke="#000" stroke-width="0.5" d="M9 17l-2 2h2zM15 17l2 2h-2z"/>
+function rocketSvg(color: string, glow: boolean) {
+  const glowFilter = glow ? `
+    <defs>
+      <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+        <feGaussianBlur stdDeviation="2.5" result="blur"/>
+        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+    </defs>` : '';
+  const filterAttr = glow ? 'filter="url(#glow)"' : '';
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 40" width="32" height="40">
+    ${glowFilter}
+    <g ${filterAttr}>
+      <!-- Exhaust flame -->
+      <ellipse cx="16" cy="37" rx="4" ry="5" fill="#ff6600" opacity="0.85"/>
+      <ellipse cx="16" cy="36" rx="2.5" ry="3.5" fill="#ffcc00" opacity="0.9"/>
+      <!-- Body -->
+      <path d="M16 2 C11 2 8 8 8 15 L8 28 L16 30 L24 28 L24 15 C24 8 21 2 16 2Z"
+        fill="${color}" stroke="rgba(0,0,0,0.6)" stroke-width="0.8"/>
+      <!-- Nose cone -->
+      <path d="M16 2 C13 2 10 6 10 11 L22 11 C22 6 19 2 16 2Z"
+        fill="${color}" opacity="0.85"/>
+      <!-- Window -->
+      <circle cx="16" cy="16" r="4" fill="rgba(0,0,0,0.5)" stroke="${color}" stroke-width="1"/>
+      <circle cx="16" cy="16" r="2.5" fill="rgba(180,240,255,0.3)"/>
+      <!-- Fins left -->
+      <path d="M8 22 L3 30 L8 28Z" fill="${color}" opacity="0.9"/>
+      <!-- Fins right -->
+      <path d="M24 22 L29 30 L24 28Z" fill="${color}" opacity="0.9"/>
+      <!-- Detail lines -->
+      <line x1="12" y1="12" x2="12" y2="26" stroke="rgba(0,0,0,0.25)" stroke-width="0.5"/>
+      <line x1="20" y1="12" x2="20" y2="26" stroke="rgba(0,0,0,0.25)" stroke-width="0.5"/>
+    </g>
   </svg>`;
 }
 
-function createRocketIcon(color: string) {
+function createRocketIcon(color: string, glow = false) {
   return L.divIcon({
-    html: rocketSvg(color),
+    html: rocketSvg(color, glow),
     className: '',
-    iconSize: [28, 28],
-    iconAnchor: [14, 28],
-    popupAnchor: [0, -28],
+    iconSize: [32, 40],
+    iconAnchor: [16, 40],
+    popupAnchor: [0, -40],
   });
 }
 
@@ -238,8 +264,10 @@ export default function WorldMap({ launches, decay, tip, events }: Props) {
       zoom: 2,
       minZoom: 2,
       maxZoom: 12,
-      zoomControl: true,
+      zoomControl: false,  // disable default (top-left), re-add bottom-right below
     });
+
+    L.control.zoom({ position: 'bottomright' }).addTo(map);
 
     L.tileLayer(
       'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
@@ -308,7 +336,7 @@ export default function WorldMap({ launches, decay, tip, events }: Props) {
       const key = `${l.pad.lat},${l.pad.lon}`;
       padSet.add(key);
       const marker = L.marker([l.pad.lat, l.pad.lon], {
-        icon: createRocketIcon('#00d4ff'),
+        icon: createRocketIcon('#00d4ff', l.status.abbrev === 'GO'),
         zIndexOffset: 1000,
       });
       marker.bindPopup(launchPopup(l), { maxWidth: 340 });
