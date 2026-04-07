@@ -172,36 +172,39 @@ function padPopup(pad: Pad, upcoming: Launch[]): string {
 function decayPopup(obj: DecayObject): string {
   const days = daysUntilDecay(obj);
   const urgencyColor = days !== null && days <= 7 ? '#ff2244' : '#ff8800';
+  const sourceLabel = (obj as unknown as Record<string,unknown>).sourceType as string || obj.source || 'DECAY';
+  const window_ = (obj as unknown as Record<string,unknown>).window as number | null;
+  const highInterest = (obj as unknown as Record<string,unknown>).highInterest as boolean;
+  const objectType = (obj as unknown as Record<string,unknown>).objectType as string | null;
+  const rcs = (obj as unknown as Record<string,unknown>).rcs as string | null;
+
+  function row(label: string, value: unknown, unit = '', color = '') {
+    if (value === null || value === undefined || value === 'N/A') return '';
+    return `<div style="margin-bottom:4px">
+      <span style="color:#888">${label}: </span>
+      <span${color ? ` style="color:${color}"` : ''}>${value}${unit}</span>
+    </div>`;
+  }
+
   return `<div style="${popupStyle}">
-    <div style="color:${urgencyColor};font-weight:bold;margin-bottom:6px">
-      ${obj.source} — ${obj.name}
+    <div style="color:${urgencyColor};font-weight:bold;margin-bottom:6px;font-size:13px">
+      ${highInterest ? '⚠ HIGH INTEREST — ' : ''}${sourceLabel} REENTRY
     </div>
+    <div style="color:#e0e8f0;margin-bottom:8px">${obj.name}</div>
+    ${row('NORAD', obj.norad)}
+    ${row('COUNTRY', obj.country)}
+    ${objectType ? row('TYPE', objectType) : ''}
+    ${rcs ? row('SIZE', rcs) : ''}
     <div style="margin-bottom:4px">
-      <span style="color:#888">NORAD: </span>${obj.norad}
-    </div>
-    <div style="margin-bottom:4px">
-      <span style="color:#888">COUNTRY: </span>${obj.country || 'N/A'}
-    </div>
-    <div style="margin-bottom:4px">
-      <span style="color:#888">DECAY EPOCH: </span>
+      <span style="color:#888">REENTRY EST.: </span>
       <span style="color:${urgencyColor}">${obj.decayEpoch ? new Date(obj.decayEpoch).toUTCString() : 'N/A'}</span>
     </div>
-    ${days !== null ? `<div style="margin-bottom:4px">
-      <span style="color:#888">DAYS REMAINING: </span>
-      <span style="color:${urgencyColor}">${days}d</span>
-    </div>` : ''}
-    <div style="margin-bottom:4px">
-      <span style="color:#888">INCLINATION: </span>${obj.inclination ?? 'N/A'}°
-    </div>
-    <div style="margin-bottom:4px">
-      <span style="color:#888">APOGEE: </span>${obj.apogee ?? 'N/A'} km
-    </div>
-    <div style="margin-bottom:4px">
-      <span style="color:#888">PERIGEE: </span>${obj.perigee ?? 'N/A'} km
-    </div>
-    ${obj.altitude != null ? `<div style="margin-bottom:4px">
-      <span style="color:#888">ALTITUDE: </span>${obj.altitude} km
-    </div>` : ''}
+    ${days !== null ? row('TIME REMAINING', days === 0 ? 'TODAY' : `${days}d`, '', urgencyColor) : ''}
+    ${window_ != null ? row('WINDOW ±', `${window_}h`) : ''}
+    ${row('INCLINATION', obj.inclination != null ? obj.inclination.toFixed(1) : null, '°')}
+    ${row('APOGEE', obj.apogee != null ? Math.round(obj.apogee) : null, ' km')}
+    ${row('PERIGEE', obj.perigee != null ? Math.round(obj.perigee) : null, ' km')}
+    ${obj.altitude != null ? row('ALTITUDE', Math.round(obj.altitude), ' km') : ''}
   </div>`;
 }
 
