@@ -5,8 +5,8 @@ const { wrapper } = require('axios-cookiejar-support');
 const { CookieJar } = require('tough-cookie');
 
 const BASE = 'https://www.space-track.org';
-const LOGIN = process.env.SPACETRACK_LOGIN || '';
-const PASSWORD = process.env.SPACETRACK_PASSWORD || '';
+const LOGIN = process.env.SPACETRACK_USER || process.env.SPACETRACK_LOGIN || '';
+const PASSWORD = process.env.SPACETRACK_PASS || process.env.SPACETRACK_PASSWORD || '';
 
 function createClient() {
   const jar = new CookieJar();
@@ -29,7 +29,7 @@ function parseDate(str) {
 // Objects with imminent atmospheric re-entry (window J-1 to J+30)
 async function fetchDecay() {
   if (!LOGIN || !PASSWORD) {
-    console.warn('[spacetrack] No credentials — skipping DECAY fetch');
+    console.warn('[spacetrack] No credentials (SPACETRACK_USER/SPACETRACK_PASS) — skipping DECAY fetch');
     return [];
   }
 
@@ -66,7 +66,7 @@ async function fetchDecay() {
 // Tracking and Impact Prediction — precise TLE-based objects
 async function fetchTip() {
   if (!LOGIN || !PASSWORD) {
-    console.warn('[spacetrack] No credentials — skipping TIP fetch');
+    console.warn('[spacetrack] No credentials (SPACETRACK_USER/SPACETRACK_PASS) — skipping TIP fetch');
     return [];
   }
 
