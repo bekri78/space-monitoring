@@ -15,59 +15,70 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 });
 
-// ── SVG rocket icon ────────────────────────────────────────────────────────────
-function rocketSvg(color: string, glow: boolean) {
-  const glowFilter = glow ? `
-    <defs>
-      <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
-        <feGaussianBlur stdDeviation="2.5" result="blur"/>
-        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-      </filter>
-    </defs>` : '';
-  const filterAttr = glow ? 'filter="url(#glow)"' : '';
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 40" width="32" height="40">
-    ${glowFilter}
-    <g ${filterAttr}>
-      <!-- Exhaust flame -->
-      <ellipse cx="16" cy="37" rx="4" ry="5" fill="#ff6600" opacity="0.85"/>
-      <ellipse cx="16" cy="36" rx="2.5" ry="3.5" fill="#ffcc00" opacity="0.9"/>
-      <!-- Body -->
-      <path d="M16 2 C11 2 8 8 8 15 L8 28 L16 30 L24 28 L24 15 C24 8 21 2 16 2Z"
-        fill="${color}" stroke="rgba(0,0,0,0.6)" stroke-width="0.8"/>
-      <!-- Nose cone -->
-      <path d="M16 2 C13 2 10 6 10 11 L22 11 C22 6 19 2 16 2Z"
-        fill="${color}" opacity="0.85"/>
-      <!-- Window -->
-      <circle cx="16" cy="16" r="4" fill="rgba(0,0,0,0.5)" stroke="${color}" stroke-width="1"/>
-      <circle cx="16" cy="16" r="2.5" fill="rgba(180,240,255,0.3)"/>
-      <!-- Fins left -->
-      <path d="M8 22 L3 30 L8 28Z" fill="${color}" opacity="0.9"/>
-      <!-- Fins right -->
-      <path d="M24 22 L29 30 L24 28Z" fill="${color}" opacity="0.9"/>
-      <!-- Detail lines -->
-      <line x1="12" y1="12" x2="12" y2="26" stroke="rgba(0,0,0,0.25)" stroke-width="0.5"/>
-      <line x1="20" y1="12" x2="20" y2="26" stroke="rgba(0,0,0,0.25)" stroke-width="0.5"/>
-    </g>
-  </svg>`;
-}
-
+// ── FontAwesome icon helpers ───────────────────────────────────────────────────
 function createRocketIcon(color: string, glow = false) {
+  const shadow = glow ? `drop-shadow(0 0 6px ${color}) drop-shadow(0 0 12px ${color})` : 'none';
+  const html = `
+    <div style="
+      width:32px; height:32px;
+      display:flex; align-items:center; justify-content:center;
+      filter:${shadow};
+    ">
+      <i class="fa-solid fa-rocket"
+        style="
+          color:${color};
+          font-size:22px;
+          transform: rotate(-45deg);
+          display:block;
+        ">
+      </i>
+    </div>`;
   return L.divIcon({
-    html: rocketSvg(color, glow),
+    html,
     className: '',
-    iconSize: [32, 40],
-    iconAnchor: [16, 40],
-    popupAnchor: [0, -40],
+    iconSize: [32, 32],
+    iconAnchor: [16, 16],
+    popupAnchor: [0, -18],
   });
 }
 
-function createCircleIcon(color: string, size = 14) {
+function createDecayIcon(color: string) {
+  const html = `
+    <div style="
+      width:28px; height:28px;
+      display:flex; align-items:center; justify-content:center;
+      filter: drop-shadow(0 0 5px ${color});
+    ">
+      <i class="fa-solid fa-circle-radiation"
+        style="color:${color}; font-size:20px;">
+      </i>
+    </div>`;
   return L.divIcon({
-    html: `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${color};border:2px solid rgba(255,255,255,0.6);box-shadow:0 0 8px ${color}"></div>`,
+    html,
     className: '',
-    iconSize: [size, size],
-    iconAnchor: [size / 2, size / 2],
-    popupAnchor: [0, -size / 2],
+    iconSize: [28, 28],
+    iconAnchor: [14, 14],
+    popupAnchor: [0, -16],
+  });
+}
+
+function createTipIcon() {
+  const html = `
+    <div style="
+      width:28px; height:28px;
+      display:flex; align-items:center; justify-content:center;
+      filter: drop-shadow(0 0 5px #aa44ff);
+    ">
+      <i class="fa-solid fa-satellite"
+        style="color:#aa44ff; font-size:18px;">
+      </i>
+    </div>`;
+  return L.divIcon({
+    html,
+    className: '',
+    iconSize: [28, 28],
+    iconAnchor: [14, 14],
+    popupAnchor: [0, -16],
   });
 }
 
@@ -366,7 +377,7 @@ export default function WorldMap({ launches, decay, tip, events }: Props) {
       if (!obj.lat || !obj.lon) continue;
       const days = daysUntilDecay(obj);
       const color = days !== null && days <= 7 ? '#ff2244' : '#ff8800';
-      const marker = L.marker([obj.lat, obj.lon], { icon: createCircleIcon(color, 16) });
+      const marker = L.marker([obj.lat, obj.lon], { icon: createDecayIcon(color) });
       marker.bindPopup(decayPopup(obj), { maxWidth: 300 });
       layer.addLayer(marker);
     }
@@ -380,7 +391,7 @@ export default function WorldMap({ launches, decay, tip, events }: Props) {
 
     for (const obj of tip) {
       if (!obj.lat || !obj.lon) continue;
-      const marker = L.marker([obj.lat, obj.lon], { icon: createCircleIcon('#aa44ff', 14) });
+      const marker = L.marker([obj.lat, obj.lon], { icon: createTipIcon() });
       marker.bindPopup(decayPopup(obj), { maxWidth: 300 });
       layer.addLayer(marker);
     }
