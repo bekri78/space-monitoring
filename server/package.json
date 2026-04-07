@@ -1,0 +1,22 @@
+{
+  "name": "space-monitor-backend",
+  "version": "1.0.0",
+  "description": "Space Monitor Backend API",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "@google-cloud/bigquery": "^7.3.0",
+    "axios": "^1.7.2",
+    "axios-cookiejar-support": "^4.0.7",
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "node-cron": "^3.0.3",
+    "node-fetch": "^2.7.0",
+    "openai": "^4.52.7",
+    "tough-cookie": "^4.1.4"
+  }
+}
