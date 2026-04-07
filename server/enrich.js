@@ -4,8 +4,8 @@ const OpenAI = require('openai');
 const axios = require('axios');
 
 const OPENAI_KEY = process.env.OPENAI_API_KEY || process.env.chatgpt || '';
-const BATCH_SIZE = 10;          // smaller batches = faster + less timeout risk
-const BATCH_TIMEOUT_MS = 25000; // 25s max per batch
+const BATCH_SIZE = 20;          // 20 events/batch = 15 batches instead of 30
+const BATCH_TIMEOUT_MS = 45000; // 45s max per batch (more events = more output)
 const GEOCODE_TIMEOUT_MS = 6000;
 
 // ── Geocode ───────────────────────────────────────────────────────────────────
@@ -180,7 +180,7 @@ ${JSON.stringify(events.map((e) => ({
     model: 'gpt-4o-mini',
     messages: [{ role: 'user', content: prompt }],
     temperature: 0.1,
-    max_tokens: 2000,
+    max_tokens: 4000,
   });
 
   // Race against timeout

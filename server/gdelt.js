@@ -179,7 +179,7 @@ async function fetchGdeltEvents(cacheDir, forceRefresh = false) {
     return [];
   }
 
-  // Cap to top 300 by mentions before enrichment
+  // Cap to top 300 by mentions before enrichment (300 events = 15 batches of 20 = ~360s)
   const toEnrich = rawEvents.slice(0, 300);
   console.log(`[gdelt] Enriching top ${toEnrich.length}/${rawEvents.length} events via OpenAI...`);
 
@@ -187,7 +187,7 @@ async function fetchGdeltEvents(cacheDir, forceRefresh = false) {
   try {
     enriched = await withTimeout(
       enrichEvents(toEnrich),
-      300000, // 5 min max for enrichment
+      480000, // 8 min max for enrichment
       'OpenAI enrichment'
     );
   } catch (err) {
