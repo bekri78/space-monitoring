@@ -50,24 +50,31 @@ async function safe(fn, label) {
 }
 
 // ── Initial load ─────────────────────────────────────────────────────────────
-async function init() {
+// Each source updates state independently as soon as it resolves — no blocking
+function init() {
   console.log('[INIT] Starting Space Monitor backend...');
 
-  const [launches, decay, tip, sw, events] = await Promise.all([
-    safe(() => fetchLaunches(), 'launches'),
-    safe(() => fetchDecay(), 'decay'),
-    safe(() => fetchTip(), 'tip'),
-    safe(() => fetchSpaceWeather(), 'spaceweather'),
-    safe(() => fetchGdeltEvents(CACHE_DIR), 'gdelt-events'),
-  ]);
+  safe(() => fetchLaunches(), 'launches').then((d) => {
+    if (d) { state.launches = d; state.lastUpdated.launches = new Date(); }
+  });
 
-  if (launches) { state.launches = launches; state.lastUpdated.launches = new Date(); }
-  if (decay)    { state.decay = decay;       state.lastUpdated.decay = new Date(); }
-  if (tip)      { state.tip = tip;           state.lastUpdated.tip = new Date(); }
-  if (sw)       { state.spaceweather = sw;   state.lastUpdated.spaceweather = new Date(); }
-  if (events)   { state.events = events;     state.lastUpdated.events = new Date(); }
+  safe(() => fetchDecay(), 'decay').then((d) => {
+    if (d) { state.decay = d; state.lastUpdated.decay = new Date(); }
+  });
 
-  console.log('[INIT] Done.');
+  safe(() => fetchTip(), 'tip').then((d) => {
+    if (d) { state.tip = d; state.lastUpdated.tip = new Date(); }
+  });
+
+  safe(() => fetchSpaceWeather(), 'spaceweather').then((d) => {
+    if (d) { state.spaceweather = d; state.lastUpdated.spaceweather = new Date(); }
+  });
+
+  // GDELT runs last and independently — long enrichment won't block other endpoints
+  safe(() => fetchGdeltEvents(CACHE_DIR), 'gdelt-events').then((d) => {
+    if (d) { state.events = d; state.lastUpdated.events = new Date(); }
+    console.log('[INIT] All sources loaded.');
+  });
 }
 
 // ── Cron jobs ─────────────────────────────────────────────────────────────────

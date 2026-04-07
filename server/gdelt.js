@@ -130,8 +130,12 @@ async function fetchGdeltEvents(cacheDir, forceRefresh = false) {
   }
   console.log(`[gdelt] Got ${rawEvents.length} raw events from BigQuery`);
 
+  // Cap to top 300 by mentions before enrichment (reduces OpenAI calls ~10x)
+  const toEnrich = rawEvents.slice(0, 300);
+  console.log(`[gdelt] Enriching top ${toEnrich.length} events (capped from ${rawEvents.length})`);
+
   // Enrich via OpenAI + geocoding
-  const enriched = await enrichEvents(rawEvents);
+  const enriched = await enrichEvents(toEnrich);
   console.log(`[gdelt] ${enriched.length} events after enrichment`);
 
   // Save to cache
