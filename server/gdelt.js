@@ -43,6 +43,17 @@ ORDER BY NumMentions DESC
 LIMIT 2000
 `;
 
+// Timeout wrapper — rejects after ms milliseconds
+function withTimeout(promise, ms, label) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms);
+    promise.then(
+      (v) => { clearTimeout(timer); resolve(v); },
+      (e) => { clearTimeout(timer); reject(e); }
+    );
+  });
+}
+
 function getCacheFile(cacheDir) {
   const today = new Date().toISOString().slice(0, 10);
   return path.join(cacheDir, `gdelt-${today}.json`);
@@ -53,7 +64,9 @@ function loadCache(cacheDir) {
   if (fs.existsSync(file)) {
     try {
       const raw = fs.readFileSync(file, 'utf8');
-      return JSON.parse(raw);
+      const parsed = JSON.parse(raw);
+      console.log(`[gdelt] Cache hit: ${parsed.length} events from ${file}`);
+      return parsed;
     } catch (_) {}
   }
   return null;
@@ -62,6 +75,7 @@ function loadCache(cacheDir) {
 function saveCache(cacheDir, data) {
   const file = getCacheFile(cacheDir);
   fs.writeFileSync(file, JSON.stringify(data), 'utf8');
+  console.log(`[gdelt] Cache saved: ${data.length} events → ${file}`);
 }
 
 function createBigQueryClient() {
@@ -75,13 +89,28 @@ function createBigQueryClient() {
     throw new Error('GOOGLE_CREDENTIALS_JSON is not valid JSON');
   }
 
+  console.log(`[gdelt] BigQuery client — project: ${credentials.project_id}`);
   return new BigQuery({ credentials, projectId: credentials.project_id });
 }
 
 async function runBigQuery() {
   const bq = createBigQueryClient();
-  const [job] = await bq.createQueryJob({ query: GDELT_QUERY, location: 'US' });
-  const [rows] = await job.getQueryResults();
+
+  console.log('[gdelt] Creating BigQuery job...');
+  const [job] = await withTimeout(
+    bq.createQueryJob({ query: GDELT_QUERY, location: 'US' }),
+    60000,
+    'BigQuery createQueryJob'
+  );
+  console.log(`[gdelt] Job created: ${job.id} — waiting for results...`);
+
+  const [rows] = await withTimeout(
+    job.getQueryResults({ timeoutMs: 120000 }),
+    150000,
+    'BigQuery getQueryResults'
+  );
+  console.log(`[gdelt] Raw rows received: ${rows.length}`);
+
   return rows.map((r) => ({
     id: r.id,
     date: r.date,
@@ -108,10 +137,7 @@ async function fetchGdeltEvents(cacheDir, forceRefresh = false) {
   // Try cache first
   if (!forceRefresh) {
     const cached = loadCache(cacheDir);
-    if (cached) {
-      console.log(`[gdelt] Loaded ${cached.length} events from cache`);
-      return cached;
-    }
+    if (cached) return cached;
   }
 
   // Check if BigQuery is configured
@@ -120,27 +146,45 @@ async function fetchGdeltEvents(cacheDir, forceRefresh = false) {
     return [];
   }
 
-  console.log('[gdelt] Running BigQuery query...');
+  console.log('[gdelt] Starting BigQuery fetch pipeline...');
   let rawEvents;
   try {
     rawEvents = await runBigQuery();
   } catch (err) {
-    console.error('[gdelt] BigQuery error:', err.message);
+    console.error('[gdelt] BigQuery FAILED:', err.message);
     return [];
   }
-  console.log(`[gdelt] Got ${rawEvents.length} raw events from BigQuery`);
 
-  // Cap to top 300 by mentions before enrichment (reduces OpenAI calls ~10x)
+  if (!rawEvents || rawEvents.length === 0) {
+    console.warn('[gdelt] BigQuery returned 0 rows — check credentials/query');
+    return [];
+  }
+
+  // Cap to top 300 by mentions before enrichment
   const toEnrich = rawEvents.slice(0, 300);
-  console.log(`[gdelt] Enriching top ${toEnrich.length} events (capped from ${rawEvents.length})`);
+  console.log(`[gdelt] Enriching top ${toEnrich.length}/${rawEvents.length} events via OpenAI...`);
 
-  // Enrich via OpenAI + geocoding
-  const enriched = await enrichEvents(toEnrich);
-  console.log(`[gdelt] ${enriched.length} events after enrichment`);
+  let enriched;
+  try {
+    enriched = await withTimeout(
+      enrichEvents(toEnrich),
+      300000, // 5 min max for enrichment
+      'OpenAI enrichment'
+    );
+  } catch (err) {
+    console.error('[gdelt] Enrichment FAILED:', err.message);
+    // Return raw events without enrichment rather than nothing
+    enriched = toEnrich.map((e) => ({
+      ...e,
+      title_fr: e.location || 'Événement spatial',
+      title_en: e.location || 'Space event',
+      relevance: 65,
+      inferred_location: e.location || '',
+    }));
+  }
 
-  // Save to cache
+  console.log(`[gdelt] Final: ${enriched.length} events ready`);
   saveCache(cacheDir, enriched);
-
   return enriched;
 }
 
